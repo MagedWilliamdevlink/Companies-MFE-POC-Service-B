@@ -1,172 +1,291 @@
 import { assign, createActor, setup, transition } from "xstate";
 
+interface Log {
+  eventName: string;
+  extra: string;
+  timestamp: number;
+}
+
+function updateProgress(context, domain, event) {
+  return {
+    ...context.Progress,
+    [domain]: [
+      ...context.Progress[domain],
+      {
+        ...event,
+        timestamp: Date.now(),
+      },
+    ],
+  };
+}
+
 const stateMachine = setup({
   types: {
     context: {} as {
-      isFormValid: boolean;
-      isReviewed: boolean;
-      isPaymentCompleted: boolean;
-      isShippingValid: boolean;
-      isRequestComplete: boolean;
+      formData: Record<string, any>;
+      shippingInfo: Record<string, any>;
+      paymentInfo: Record<string, any>;
+      paymentCompleted: boolean;
+      reviewApproved: boolean;
+      deliveryConfirmed: boolean;
+      requestRejected: boolean;
+      Progress: {
+        applying: Log[];
+        reviewing: Log[];
+        shipping: Log[];
+      };
     },
     events: {} as
-      | { type: "PAYMENT_SUCCEEDED" }
+      | { type: "NEXT"; kind?: "normal" | "confirm" | "pay" | "submit" }
+      | { type: "PREVIOUS" }
+      | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
-      | { type: "NEXT"; validStep: boolean }
-      | { type: "PREVIOUS" },
+      | { type: "REVIEW_STARTED" }
+      | { type: "APPROVE" }
+      | { type: "REJECT" }
+      | { type: "READY_TO_SHIP" }
+      | { type: "SUBMIT_SHIPPING"; shippingInfo: Record<string, any> }
+      | { type: "DELIVERY_CONFIRMED" },
   },
+
   guards: {
-    isFormValid: ({ context, event }) => {
-      // console.log(event);
-      if (event.type === "NEXT" && event?.validStep) {
-        return true;
-      }
-      return false;
-    },
-    isReviewed: ({ context, event }) => {
-      // Add your guard condition here
-      if (event.type === "NEXT" && event?.validStep) {
-        // fetch to backend
-        return true;
-      }
-      return false;
-    },
-    isPaymentCompleted: ({ context, event }) => {
-      // console.log("isPaymentCompleted", event);
-      if (event.type === "PAYMENT_SUCCEEDED") {
-        return true;
-      }
-      // Add your guard condition here
-      return false;
-    },
-    isShippingValid: ({ context, event }) => {
-      // console.log("isShippingValid", event);
-      if (event.type === "NEXT" && event?.validStep) {
-        return true;
-      }
-      // Add your guard condition here
-      return false;
-    },
-    hasShippingCompletedInContext: ({ context }) => {
-      return (
-        context.isShippingValid === true && context.isRequestComplete === true
-      );
-    },
+    isPaymentComplete: ({ context }) => context.paymentCompleted,
+    isApproved: ({ context }) => context.reviewApproved,
+    isDelivered: ({ context }) => context.deliveryConfirmed,
+  },
+
+  actions: {
+    Progress_informationFilled: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "applying", {
+          eventName: "Information Filled",
+          extra: "",
+        });
+      },
+    }),
+    Progress_PaymentDone: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "applying", {
+          eventName: "Payment Done",
+          extra: "",
+        });
+      },
+    }),
+    Progress_underReview: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "reviewing", {
+          eventName: "Under Review",
+          extra: "",
+        });
+      },
+    }),
+
+    Progress_reviewApproved: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "reviewing", {
+          eventName: "Approved by reviewer",
+          extra: "",
+        });
+      },
+    }),
+
+    Progress_reviewRejected: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "reviewing", {
+          eventName: "Rejected by reviewer",
+          extra: "insuffecient data",
+        });
+      },
+    }),
+
+    Progress_shippmentAddress: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "shipping", {
+          eventName: "Shipping address provided",
+          extra: "shipping address, cairo, egypt",
+        });
+      },
+    }),
+
+    Progress_shippmentDelivered: assign({
+      Progress: ({ context }) => {
+        return updateProgress(context, "shipping", {
+          eventName: "Shippment delivered",
+          extra: "Delivered To: shipping address, cairo, egypt",
+        });
+      },
+    }),
+
+    rejectRequest: assign({
+      requestRejected: () => true,
+    }),
+
+    markPaymentComplete: assign({
+      paymentCompleted: () => true,
+      paymentInfo: () => {},
+    }),
+
+    markApproved: assign({
+      reviewApproved: () => true,
+    }),
+
+    saveShippingInfo: assign({
+      shippingInfo: ({ event }) =>
+        event.type === "SUBMIT_SHIPPING" ? event.shippingInfo : {},
+    }),
+
+    markDelivered: assign({
+      deliveryConfirmed: () => true,
+    }),
   },
 }).createMachine({
+  id: "governmentService",
+  initial: "applying",
+
   context: {
-    isFormValid: false,
-    isReviewed: false,
-    isPaymentCompleted: false,
-    isShippingValid: false,
-    isRequestComplete: false,
+    formData: {},
+    paymentInfo: {},
+    shippingInfo: {},
+    Progress: {
+      applying: [],
+      reviewing: [],
+      shipping: [],
+    },
+    paymentCompleted: false,
+    reviewApproved: false,
+    deliveryConfirmed: false,
+    requestRejected: false,
   },
-  id: "checkoutWorkflow",
-  initial: "formEntry",
+
   states: {
-    formEntry: {
-      on: {
-        NEXT: [
-          {
-            target: "awaitingReview",
-            guard: {
-              type: "isFormValid",
-            },
-            actions: assign({
-              isFormValid: true,
-            }),
-            description: "if the form is valid, move to the next step",
+    /* ===================================== */
+    /* APPLYING */
+    /* ===================================== */
+    applying: {
+      initial: "fillInformation",
+
+      states: {
+        fillInformation: {
+          on: {
+            NEXT: "confirmInformation",
           },
-          {
-            target: "formEntry",
-            description: "if form wasn't valid, user stays on the step",
-          },
-        ],
-      },
-      description: "Fill basic form and submit",
-    },
-    awaitingReview: {
-      on: {
-        NEXT: [
-          {
-            target: "paymentRequired",
-            guard: {
-              type: "isReviewed",
-            },
-            actions: assign({
-              isReviewed: true,
-            }),
-          },
-          {
-            target: "awaitingReview",
-          },
-        ],
-      },
-      description: "Show submit was successful, waiting for reviewer",
-    },
-    paymentRequired: {
-      on: {
-        PAYMENT_SUCCEEDED: {
-          target: "shippingRequired",
-          actions: assign({
-            isPaymentCompleted: true,
-          }),
         },
-        PAYMENT_FAILED: {
-          target: "paymentRequired",
-        },
-        PREVIOUS: {
-          target: "awaitingReview",
-        },
-      },
-      description: "if Step1 reviewed, we show bill summary",
-    },
-    paymentSuccess: {
-      on: {
-        NEXT: [
-          {
-            target: "completed",
-            guard: {
-              type: "hasShippingCompletedInContext",
+
+        confirmInformation: {
+          on: {
+            PREVIOUS: "fillInformation",
+            NEXT: {
+              target: "payment",
+              actions: "Progress_informationFilled",
             },
           },
-          {
-            target: "shippingRequired",
-          },
-        ],
-      },
-      description: "Show Payment Succeeded with timestamp",
-    },
-    shippingRequired: {
-      on: {
-        NEXT: [
-          {
-            target: "completed",
-            guard: {
-              type: "isShippingValid",
+        },
+
+        payment: {
+          on: {
+            PAYMENT_SUCCESS: {
+              target: "done",
+              actions: ["markPaymentComplete", "Progress_PaymentDone"],
             },
-            actions: assign({
-              isShippingValid: true,
-              isRequestComplete: true,
-            }),
           },
-          {
-            target: "shippingRequired",
-          },
-        ],
-        PREVIOUS: {
-          target: "paymentSuccess",
+        },
+
+        done: {
+          type: "final",
         },
       },
-      description: "Enter shipment address",
+
+      onDone: {
+        target: "#governmentService.underReview.waitingForReviewer",
+        guard: "isPaymentComplete",
+      },
     },
+
+    /* ===================================== */
+    /* UNDER REVIEW */
+    /* ===================================== */
+    underReview: {
+      initial: "waitingForReviewer",
+
+      states: {
+        waitingForReviewer: {
+          on: {
+            REVIEW_STARTED: {
+              target: "reviewing",
+              actions: "Progress_underReview",
+            },
+          },
+        },
+
+        reviewing: {
+          on: {
+            APPROVE: {
+              target: "approved",
+              actions: ["markApproved", "Progress_reviewApproved"],
+            },
+            REJECT: "rejected",
+          },
+        },
+
+        rejected: {
+          always: {
+            target: "#governmentService.completed",
+            actions: ["rejectRequest", "Progress_reviewRejected"],
+          },
+        },
+
+        approved: {
+          type: "final",
+        },
+      },
+
+      onDone: {
+        target: "shipping",
+        guard: "isApproved",
+      },
+    },
+
+    /* ===================================== */
+    /* SHIPPING */
+    /* ===================================== */
+    shipping: {
+      initial: "enterShippingInfo",
+
+      states: {
+        enterShippingInfo: {
+          on: {
+            SUBMIT_SHIPPING: {
+              target: "inTransit",
+              actions: ["saveShippingInfo", "Progress_shippmentAddress"],
+            },
+          },
+        },
+
+        inTransit: {
+          on: {
+            DELIVERY_CONFIRMED: {
+              target: "delivered",
+              actions: ["markDelivered", "Progress_shippmentDelivered"],
+            },
+          },
+        },
+
+        delivered: {
+          type: "final",
+        },
+      },
+
+      onDone: {
+        target: "completed",
+        guard: "isDelivered",
+      },
+    },
+
+    /* ===================================== */
+    /* COMPLETED */
+    /* ===================================== */
     completed: {
-      on: {
-        PREVIOUS: {
-          target: "paymentSuccess",
-        },
-      },
-      description: "Service is complete",
+      type: "final",
     },
   },
 });
