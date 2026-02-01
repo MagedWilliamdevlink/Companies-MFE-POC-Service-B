@@ -98,7 +98,7 @@ const stateMachine = setup({
       Progress: ({ context }) => {
         return updateProgress(context, "completion", {
           eventName: "Rejected by reviewer",
-          extra: "Passed payment due date window",
+          extra: "Missing Payment due date",
         });
       },
     }),

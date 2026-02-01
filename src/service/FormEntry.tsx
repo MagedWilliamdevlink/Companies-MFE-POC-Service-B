@@ -14,8 +14,6 @@ interface FormErrors {
 }
 
 export default function FormEntry({ form, request, isReadonly = false }) {
-  // Import shared UI - all parcels ready to use
-
   // Form state for step 1
   const [formData, setFormData] = useState({
     companyName: "",
@@ -58,9 +56,9 @@ export default function FormEntry({ form, request, isReadonly = false }) {
       setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
+
   return (
     <>
-      Psst this is service B
       <div style={styles.formContainer}>
         <Form
           disabled={isReadonly}
