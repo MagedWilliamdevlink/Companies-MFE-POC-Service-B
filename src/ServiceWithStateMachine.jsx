@@ -4,9 +4,144 @@ import { createCheckoutMachine } from "./machine/service";
 import { mountRootParcel } from "single-spa";
 import { useMemo, useRef } from "react";
 
-import { VerticalStepperParcel, ButtonParcel } from "./shared-ui";
+import { NestedVerticalStepsParcel, ButtonParcel } from "./shared-ui";
 import { styles } from "./styles";
 import { getRequestID, getRequest, updateRequestStep } from "./requestStorage";
+import { Children } from "react";
+
+const steps = [
+  {
+    id: "basicInformationTask",
+    markCompleteOnContext: "InfoConfirmed",
+    title: "المعلومات الأساسية",
+    children: [
+      {
+        id: "fillInformation",
+        activeWhileState: "applying.fillInformation",
+        title: "المعلومات المطلوبة",
+        header: "إدخال المعلومات الأساسية",
+        description:
+          "من فضلك قم بإدخال جميع البيانات المطلوبة بشكل صحيح لإتمام الطلب.",
+      },
+      {
+        id: "confirmInformation",
+        activeWhileState: "applying.confirmInformation",
+        title: "تأكيد المعلومات",
+        header: "تأكيد صحة المعلومات",
+        description:
+          "يرجى مراجعة البيانات المدخلة والتأكد من صحتها قبل المتابعة.",
+      },
+    ],
+  },
+  {
+    id: "paymentTask",
+    activeWhileState: "applying.payment",
+    markCompleteOnContext: "paymentCompleted",
+    title: "الدفع",
+    header: "دفع رسوم الخدمة",
+    description: "من فضلك قم بدفع الرسوم المطلوبة لإتمام عملية التقديم.",
+  },
+  {
+    id: "reviewTask",
+    markCompleteOnContext: "reviewApproved",
+    markRejectedOnContext: "requestRejected",
+    title: "المراجعة",
+    children: [
+      {
+        id: "reviewTaskSummary",
+        activeWhileState: "underReview.waitingForReviewer",
+        title: "ملخص المراجعة",
+        header: "الطلب قيد المراجعة",
+        description:
+          "طلبك الآن قيد المراجعة من قبل المختصين وسيتم إشعارك عند الانتهاء.",
+      },
+    ],
+  },
+  {
+    id: "shippingTask",
+    markCompleteOnContext: "deliveryConfirmed",
+    title: "الشحن",
+    children: [
+      {
+        id: "enterShippingInfo",
+        activeWhileState: "shipping.enterShippingInfo",
+        title: "معلومات الشحن",
+        header: "إدخال معلومات الشحن",
+        description: "من فضلك أدخل بيانات عنوان الشحن بدقة لضمان وصول الشحنة.",
+      },
+      {
+        id: "shipmentStatus",
+        activeWhileState: "shipping.inTransit",
+        title: "حالة الشحنة",
+        header: "الشحنة في الطريق",
+        description:
+          "يمكنك متابعة حالة الشحنة حتى يتم تسليمها إلى العنوان المحدد.",
+      },
+    ],
+  },
+];
+
+function getStepState(steps, machine) {
+  for (const step of steps) {
+    // Check the step itself
+    if (step.activeWhileState && machine.matches(step.activeWhileState)) {
+      return step;
+    }
+
+    // Check children
+    if (Array.isArray(step.children)) {
+      for (const child of step.children) {
+        if (child.activeWhileState && machine.matches(child.activeWhileState)) {
+          return child;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function flattenSteps(steps, result) {
+  if (!Array.isArray(steps)) return result || [];
+
+  result = result || [];
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    result.push(step);
+
+    if (Array.isArray(step.children)) {
+      flattenSteps(step.children, result);
+    }
+  }
+
+  return result;
+}
+
+function getStepProgress(steps, machine) {
+  if (!Array.isArray(steps)) {
+    return { current: 0, total: 0 };
+  }
+
+  const allSteps = flattenSteps(steps);
+  const activeSteps = allSteps.filter(function (step) {
+    return step && step.activeWhileState;
+  });
+
+  let currentIndex = -1;
+
+  for (let i = 0; i < activeSteps.length; i++) {
+    if (machine.matches(activeSteps[i].activeWhileState)) {
+      currentIndex = i;
+      break;
+    }
+  }
+
+  return {
+    current: currentIndex >= 0 ? currentIndex + 1 : 0,
+    total: activeSteps.length,
+  };
+}
 
 export default function ServiceComponent() {
   const requestID = getRequestID();
@@ -111,11 +246,19 @@ export default function ServiceComponent() {
       </Parcel>
     );
   }
-
+  const activeStepData = getStepState(steps, state);
+  const steper = getStepProgress(steps, state);
   return (
     <div style={styles.wrapper}>
       {/* ====== SIDEBAR with VerticalStepper ====== */}
-      <aside style={styles.sidebar}></aside>
+      <aside style={styles.sidebar}>
+        <Parcel
+          config={NestedVerticalStepsParcel}
+          mountParcel={mountRootParcel}
+          steps={steps}
+          state={state}
+        />
+      </aside>
       {/* ====== MAIN CONTENT AREA ====== */}
       <div style={styles.mainWrapper}>
         <main style={styles.mainContent}>
@@ -126,6 +269,13 @@ export default function ServiceComponent() {
 
           {/* ------ Content Body ------ */}
           <div style={styles.contentBody}>
+            {!state.matches("completed") && (
+              <div className="">
+                الخطوة {steper.current}/{steper.total}
+              </div>
+            )}
+            <h1 className="font-bold text-2xl">{activeStepData?.header}</h1>
+            <p>{activeStepData?.description}</p>
             <details>
               <summary>Current Step: {JSON.stringify(state.value)}</summary>
               <pre>{JSON.stringify(state.context, null, 2)}</pre>
@@ -136,16 +286,16 @@ export default function ServiceComponent() {
           <div className="flex gap-3 justify-end px-3 w-full">
             {state.matches("applying.fillInformation") && (
               <>
-                <CTA action="NEXT">Next</CTA>
+                <CTA action="NEXT">التالي</CTA>
               </>
             )}
 
             {state.matches("applying.confirmInformation") && (
               <>
                 <CTA action="PREVIOUS" arrow={"right"} variant={"outline"}>
-                  PREVIOUS
+                  سابق
                 </CTA>
-                <CTA action="NEXT">Next</CTA>
+                <CTA action="NEXT">التالي</CTA>
               </>
             )}
 
@@ -157,36 +307,35 @@ export default function ServiceComponent() {
 
             {state.matches("underReview.waitingForReviewer") && (
               <>
-                <CTA action="REVIEW_STARTED">REVIEW_STARTED</CTA>
-              </>
-            )}
-
-            {state.matches("underReview.reviewing") && (
-              <>
                 <CTA action="REJECT" arrow={"right"} variant={"outline"}>
-                  REJECT
+                  رفض
                 </CTA>
-                <CTA action="APPROVE">APPROVE</CTA>
+                <CTA action="APPROVE">يعتمد</CTA>
               </>
             )}
 
             {state.matches("shipping.enterShippingInfo") && (
               <>
-                <CTA action="SUBMIT_SHIPPING">SUBMIT_SHIPPING</CTA>
+                <CTA action="SUBMIT_SHIPPING">إرسال الشحن</CTA>
               </>
             )}
 
             {state.matches("shipping.inTransit") && (
               <>
-                <CTA action="DELIVERY_CONFIRMED">DELIVERY_CONFIRMED</CTA>
+                <CTA action="DELIVERY_CONFIRMED">تم تأكيد التسليم</CTA>
               </>
             )}
 
             {state.matches("completed") && (
               <>
-                {state.context.requestRejected
-                  ? "Request Rejected"
-                  : "Request Completed"}
+                {state.context.requestRejected ? (
+                  <>
+                    Request Rejected reason:{" "}
+                    {state.context.Progress.completion[0].extra}
+                  </>
+                ) : (
+                  "Request Completed"
+                )}
               </>
             )}
           </div>

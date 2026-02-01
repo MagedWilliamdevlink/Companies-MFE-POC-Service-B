@@ -13,12 +13,14 @@ function getSharedUi() {
 
 export const sharedUIPromise = () => getSharedUi().then((m) => m);
 
-
 // Export individual parcel loaders - clean and reusable
 // These can be imported like normal imports and used directly with Single-SPA Parcel components
-export const ButtonParcel = () => getSharedUi().then((m) => {
-  return m.ButtonParcel
-});
+export const ButtonParcel = () =>
+  getSharedUi().then((m) => {
+    return m.ButtonParcel;
+  });
+export const NestedVerticalStepsParcel = () =>
+  getSharedUi().then((m) => m.NestedVerticalStepsParcel);
 export const VerticalStepperParcel = () =>
   getSharedUi().then((m) => m.VerticalStepperParcel);
 export const NavigationButtonsParcel = () =>

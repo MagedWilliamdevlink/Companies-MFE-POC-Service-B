@@ -9,6 +9,7 @@ interface Log {
 function updateProgress(context, domain, event) {
   return {
     ...context.Progress,
+    lastUpdated: Date.now(),
     [domain]: [
       ...context.Progress[domain],
       {
@@ -25,14 +26,17 @@ const stateMachine = setup({
       formData: Record<string, any>;
       shippingInfo: Record<string, any>;
       paymentInfo: Record<string, any>;
+      InfoConfirmed: boolean;
       paymentCompleted: boolean;
       reviewApproved: boolean;
       deliveryConfirmed: boolean;
       requestRejected: boolean;
       Progress: {
+        lastUpdated: number;
         applying: Log[];
         reviewing: Log[];
         shipping: Log[];
+        completion: Log[];
       };
     },
     events: {} as
@@ -56,6 +60,7 @@ const stateMachine = setup({
 
   actions: {
     Progress_informationFilled: assign({
+      InfoConfirmed: true,
       Progress: ({ context }) => {
         return updateProgress(context, "applying", {
           eventName: "Information Filled",
@@ -65,7 +70,7 @@ const stateMachine = setup({
     }),
     Progress_PaymentDone: assign({
       Progress: ({ context }) => {
-        return updateProgress(context, "applying", {
+        return updateProgress(context, "reviewing", {
           eventName: "Payment Done",
           extra: "",
         });
@@ -91,9 +96,9 @@ const stateMachine = setup({
 
     Progress_reviewRejected: assign({
       Progress: ({ context }) => {
-        return updateProgress(context, "reviewing", {
+        return updateProgress(context, "completion", {
           eventName: "Rejected by reviewer",
-          extra: "insuffecient data",
+          extra: "Passed payment due date window",
         });
       },
     }),
@@ -147,10 +152,13 @@ const stateMachine = setup({
     paymentInfo: {},
     shippingInfo: {},
     Progress: {
+      lastUpdated: Date.now(),
+      completion: [],
       applying: [],
       reviewing: [],
       shipping: [],
     },
+    InfoConfirmed: false,
     paymentCompleted: false,
     reviewApproved: false,
     deliveryConfirmed: false,
@@ -210,18 +218,13 @@ const stateMachine = setup({
       states: {
         waitingForReviewer: {
           on: {
-            REVIEW_STARTED: {
-              target: "reviewing",
-              actions: "Progress_underReview",
-            },
-          },
-        },
-
-        reviewing: {
-          on: {
             APPROVE: {
               target: "approved",
-              actions: ["markApproved", "Progress_reviewApproved"],
+              actions: [
+                "markApproved",
+                "Progress_underReview",
+                "Progress_reviewApproved",
+              ],
             },
             REJECT: "rejected",
           },
@@ -230,7 +233,11 @@ const stateMachine = setup({
         rejected: {
           always: {
             target: "#governmentService.completed",
-            actions: ["rejectRequest", "Progress_reviewRejected"],
+            actions: [
+              "rejectRequest",
+              "Progress_underReview",
+              "Progress_reviewRejected",
+            ],
           },
         },
 
