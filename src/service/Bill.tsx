@@ -16,7 +16,7 @@ const handlePayment = (url) => {
   window.open(url, "_blank");
 };
 
-export default function Bill({ sendEvent }) {
+export default function Bill({ sendEvent, state }) {
   return (
     <>
       <Parcel
@@ -27,10 +27,14 @@ export default function Bill({ sendEvent }) {
         paymentTime="19:55:00"
         onPayment={() => handlePayment("https://google.com")}
       />
-
+      <br />
       <div className="flex gap-3 justify-end px-3 w-full">
         <CTA
           handleSubmit={() => {
+            sendEvent({
+              type: "SUBMIT_PAYMENT_INFO",
+              feeItems: feeItems,
+            });
             sendEvent("PAYMENT_SUCCESS");
           }}
         >

@@ -13,7 +13,6 @@ export default function CTA({
       mountParcel={mountRootParcel}
       fullWidth={false}
       onClick={() => {
-        console.log(handleSubmit);
         handleSubmit();
       }}
       variant={variant}

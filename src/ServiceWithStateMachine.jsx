@@ -20,7 +20,7 @@ const steps = [
   {
     id: "basicInformationTask",
     markCompleteOnContext: "InfoConfirmed",
-    title: "المعلومات الأساسية",
+    title: "بيانات الجمعية",
     children: [
       {
         id: "fillInformation",
@@ -177,9 +177,11 @@ export default function ServiceComponent() {
   const state = useSelector(stableMachine, (snapshot) => snapshot);
 
   const sendEvent = (event) => {
-    stableMachine.send({
-      type: event,
-    });
+    // If event is a string, wrap it in an object with type property
+    // If event is already an object, use it directly
+    const eventObject = typeof event === "string" ? { type: event } : event;
+
+    stableMachine.send(eventObject);
 
     // Get the updated state after the event is processed
     const updatedState = stableMachine.getSnapshot();
@@ -222,18 +224,18 @@ export default function ServiceComponent() {
             <br />
             {state.matches("applying.fillInformation") && (
               <>
-                <FillInfo sendEvent={sendEvent} />
+                <FillInfo sendEvent={sendEvent} request={initialRequest} />
               </>
             )}
 
             {state.matches("applying.confirmInformation") && (
               <>
-                <ViewFillInfo sendEvent={sendEvent} />
+                <ViewFillInfo sendEvent={sendEvent} request={initialRequest} />
               </>
             )}
             {state.matches("applying.payment") && (
               <>
-                <Bill sendEvent={sendEvent} />
+                <Bill sendEvent={sendEvent} state={state} />
               </>
             )}
             {state.matches("underReview.waitingForReviewer") && (
@@ -269,6 +271,7 @@ export default function ServiceComponent() {
                     ]}
                   />
                 </div>
+                <br />
                 <div className="flex gap-3 justify-end px-3 w-full">
                   <CTA handleSubmit={() => sendEvent("DELIVERY_CONFIRMED")}>
                     تم تأكيد التسليم
@@ -321,10 +324,10 @@ export default function ServiceComponent() {
               </>
             )}
 
-            <details>
+            {/* <details>
               <summary>Current Step: {JSON.stringify(state.value)}</summary>
               <pre>{JSON.stringify(state.context, null, 2)}</pre>
-            </details>
+            </details>*/}
           </div>
         </main>
       </div>

@@ -40,7 +40,11 @@ const stateMachine = setup({
       };
     },
     events: {} as
-      | { type: "NEXT"; kind?: "normal" | "confirm" | "pay" | "submit" }
+      | {
+          type: "NEXT";
+          kind?: "normal" | "confirm" | "pay" | "submit";
+          formData?: {};
+        }
       | { type: "PREVIOUS" }
       | { type: "PAYMENT_SUCCESS" }
       | { type: "PAYMENT_FAILED" }
@@ -49,6 +53,10 @@ const stateMachine = setup({
       | { type: "REJECT" }
       | { type: "READY_TO_SHIP" }
       | { type: "SUBMIT_SHIPPING"; shippingInfo: Record<string, any> }
+      | {
+          type: "SUBMIT_PAYMENT_INFO";
+          feeItems: Array<{ label: string; price: number }>;
+        }
       | { type: "DELIVERY_CONFIRMED" },
   },
 
@@ -59,11 +67,15 @@ const stateMachine = setup({
   },
 
   actions: {
+    saveFormData: assign({
+      formData: ({ event }) => (event.type === "NEXT" ? event.formData : {}),
+    }),
+
     Progress_informationFilled: assign({
       InfoConfirmed: true,
       Progress: ({ context }) => {
         return updateProgress(context, "applying", {
-          eventName: "Information Filled",
+          eventName: "تم إدخال المعلومات",
           extra: "",
         });
       },
@@ -71,7 +83,7 @@ const stateMachine = setup({
     Progress_PaymentDone: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "reviewing", {
-          eventName: "Payment Done",
+          eventName: "تم الدفع",
           extra: "",
         });
       },
@@ -79,7 +91,7 @@ const stateMachine = setup({
     Progress_underReview: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "reviewing", {
-          eventName: "Under Review",
+          eventName: "قيد المراجعة",
           extra: "",
         });
       },
@@ -88,7 +100,7 @@ const stateMachine = setup({
     Progress_reviewApproved: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "reviewing", {
-          eventName: "Approved by reviewer",
+          eventName: "تمت الموافقة من قبل المراجع",
           extra: "",
         });
       },
@@ -97,8 +109,8 @@ const stateMachine = setup({
     Progress_reviewRejected: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "completion", {
-          eventName: "Rejected by reviewer",
-          extra: "Missing Payment due date",
+          eventName: "تم رفضه من قبل المراجع تلقائياً",
+          extra: "تم تجاوز موعد استحقاق الدفع",
         });
       },
     }),
@@ -106,8 +118,8 @@ const stateMachine = setup({
     Progress_shippmentAddress: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "shipping", {
-          eventName: "Shipping address provided",
-          extra: "shipping address, cairo, egypt",
+          eventName: "تم تقديم عنوان الشحن",
+          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
         });
       },
     }),
@@ -115,8 +127,8 @@ const stateMachine = setup({
     Progress_shippmentDelivered: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "shipping", {
-          eventName: "Shippment delivered",
-          extra: "Delivered To: shipping address, cairo, egypt",
+          eventName: "تم تسليم الشحنة",
+          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
         });
       },
     }),
@@ -127,7 +139,6 @@ const stateMachine = setup({
 
     markPaymentComplete: assign({
       paymentCompleted: () => true,
-      paymentInfo: () => {},
     }),
 
     markApproved: assign({
@@ -137,6 +148,13 @@ const stateMachine = setup({
     saveShippingInfo: assign({
       shippingInfo: ({ event }) =>
         event.type === "SUBMIT_SHIPPING" ? event.shippingInfo : {},
+    }),
+
+    savePaymentInfo: assign({
+      paymentInfo: ({ event }) =>
+        event.type === "SUBMIT_PAYMENT_INFO"
+          ? { feeItems: event.feeItems }
+          : {},
     }),
 
     markDelivered: assign({
@@ -175,7 +193,10 @@ const stateMachine = setup({
       states: {
         fillInformation: {
           on: {
-            NEXT: "confirmInformation",
+            NEXT: {
+              target: "confirmInformation",
+              actions: "saveFormData",
+            },
           },
         },
 
@@ -191,6 +212,9 @@ const stateMachine = setup({
 
         payment: {
           on: {
+            SUBMIT_PAYMENT_INFO: {
+              actions: ["savePaymentInfo"],
+            },
             PAYMENT_SUCCESS: {
               target: "done",
               actions: ["markPaymentComplete", "Progress_PaymentDone"],

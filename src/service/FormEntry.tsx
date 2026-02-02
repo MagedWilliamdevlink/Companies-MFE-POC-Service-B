@@ -57,13 +57,15 @@ export default function FormEntry({ form, request, isReadonly = false }) {
     }
   };
 
+  console.warn(request?.machineSnapshot?.context?.formData);
+
   return (
     <>
       <div style={styles.formContainer}>
         <Form
           disabled={isReadonly}
           initialValues={{
-            ...request?.formEntry,
+            ...request?.machineSnapshot?.context?.formData,
           }}
           form={form}
           name="formEntry"

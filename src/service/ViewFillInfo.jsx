@@ -2,7 +2,7 @@ import { useForm } from "antd/es/form/Form";
 import FormEntry from "./FormEntry";
 import CTA from "./CTA";
 
-export default function FillInfo({ sendEvent }) {
+export default function ViewFillInfo({ sendEvent, request }) {
   const [form] = useForm();
 
   const handlePrev = () => {
@@ -20,10 +20,12 @@ export default function FillInfo({ sendEvent }) {
       });
   };
 
+  console.log(request);
+
   return (
     <>
-      <FormEntry form={form} isReadonly={true} />
-
+      <FormEntry form={form} isReadonly={true} request={request} />
+      <br />
       <div className="flex gap-3 justify-end px-3 w-full">
         <CTA handleSubmit={handlePrev} arrow={"right"} variant={"outline"}>
           سابق

@@ -16,7 +16,7 @@ export default function PendingReview({
             {
               label: "حالة الطلب",
               value: "قيد المراجعة",
-              valueColor: "#54B5A6",
+              valueColor: "#ffb300",
             },
             {
               label: "نوع الخدمة",
@@ -25,7 +25,7 @@ export default function PendingReview({
           ]}
         />
       </div>
-
+      <br />
       <div className="flex gap-3 justify-end px-3 w-full">
         <CTA
           handleSubmit={() => {

@@ -36,6 +36,7 @@ export default function ShippingAddress({ sendEvent }) {
           <TextArea></TextArea>
         </Form.Item>
       </Form>
+      <br />
       <div className="flex gap-3 justify-end px-3 w-full">
         <CTA handleSubmit={handleSubmit}>إرسال الشحن</CTA>
       </div>
