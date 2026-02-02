@@ -191,6 +191,27 @@ export default function ServiceComponent() {
 
   const activeStepData = getStepState(steps, state);
   const steper = getStepProgress(steps, state);
+
+  window.sendEvent = sendEvent;
+  window.availabelEvents = () => {
+    const events = [
+      "NEXT",
+      "PREVIOUS",
+      "PAYMENT_SUCCESS",
+      "PAYMENT_FAILED",
+      "REVIEW_STARTED",
+      "APPROVE",
+      "REJECT",
+      "READY_TO_SHIP",
+      "SUBMIT_SHIPPING",
+      "SUBMIT_PAYMENT_INFO",
+      "DELIVERY_CONFIRMED",
+    ];
+    return events.filter((ev) => {
+      return state.can({ type: ev });
+    });
+  };
+
   return (
     <div style={styles.wrapper}>
       {/* ====== SIDEBAR with VerticalStepper ====== */}
@@ -272,11 +293,6 @@ export default function ServiceComponent() {
                   />
                 </div>
                 <br />
-                <div className="flex gap-3 justify-end px-3 w-full">
-                  <CTA handleSubmit={() => sendEvent("DELIVERY_CONFIRMED")}>
-                    تم تأكيد التسليم
-                  </CTA>
-                </div>
               </>
             )}
             {state.matches("completed") && (

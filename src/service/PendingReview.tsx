@@ -26,24 +26,6 @@ export default function PendingReview({
         />
       </div>
       <br />
-      <div className="flex gap-3 justify-end px-3 w-full">
-        <CTA
-          handleSubmit={() => {
-            sendEvent("REJECT");
-          }}
-          arrow={"right"}
-          variant={"outline"}
-        >
-          رفض
-        </CTA>
-        <CTA
-          handleSubmit={() => {
-            sendEvent("APPROVE");
-          }}
-        >
-          يعتمد
-        </CTA>
-      </div>
     </>
   );
 }

@@ -11,7 +11,11 @@ const feeItems = [
   { label: "قيمة رسم التوثيق", price: 400 },
 ];
 
-const handlePayment = (url) => {
+const handlePayment = (sendEvent, feeItems, url) => {
+  sendEvent({
+    type: "SUBMIT_PAYMENT_INFO",
+    feeItems: feeItems,
+  });
   // alert("Payment successful!");
   window.open(url, "_blank");
 };
@@ -25,22 +29,11 @@ export default function Bill({ sendEvent, state }) {
         items={feeItems}
         expiryDate="20/6/2025"
         paymentTime="19:55:00"
-        onPayment={() => handlePayment("https://google.com")}
+        onPayment={() =>
+          handlePayment(sendEvent, feeItems, "https://google.com")
+        }
       />
       <br />
-      <div className="flex gap-3 justify-end px-3 w-full">
-        <CTA
-          handleSubmit={() => {
-            sendEvent({
-              type: "SUBMIT_PAYMENT_INFO",
-              feeItems: feeItems,
-            });
-            sendEvent("PAYMENT_SUCCESS");
-          }}
-        >
-          Pay (success)
-        </CTA>
-      </div>
     </>
   );
 }
