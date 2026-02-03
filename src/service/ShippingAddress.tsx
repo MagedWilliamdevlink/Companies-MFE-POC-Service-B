@@ -10,7 +10,10 @@ export default function ShippingAddress({ sendEvent }) {
     form
       .validateFields()
       .then((v) => {
-        sendEvent("SUBMIT_SHIPPING");
+        sendEvent({
+          type: "SUBMIT_SHIPPING",
+          formData: v,
+        });
       })
       .catch((e) => {
         console.log("validation error", e);

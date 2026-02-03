@@ -295,48 +295,47 @@ export default function ServiceComponent() {
                 <br />
               </>
             )}
+            {state.matches("rejected") && (
+              <>
+                <div className="flex justify-center">
+                  <StatusCard
+                    title={"تم رفض الطلب"}
+                    failedIcon={true}
+                    items={[
+                      { label: "رقم الطلب", value: requestID },
+                      {
+                        label: "حالة الطلب",
+                        value: state.context.Progress.completion[0].extra,
+                        valueColor: "#EB3E3E",
+                      },
+                      {
+                        label: "نوع الخدمة",
+                        value: initialRequest.serviceName,
+                      },
+                    ]}
+                  />
+                </div>
+              </>
+            )}
             {state.matches("completed") && (
               <>
-                {state.context.requestRejected ? (
-                  <>
-                    <div className="flex justify-center">
-                      <StatusCard
-                        title={"تم رفض الطلب"}
-                        failedIcon={true}
-                        items={[
-                          { label: "رقم الطلب", value: requestID },
-                          {
-                            label: "حالة الطلب",
-                            value: state.context.Progress.completion[0].extra,
-                            valueColor: "#EB3E3E",
-                          },
-                          {
-                            label: "نوع الخدمة",
-                            value: initialRequest.serviceName,
-                          },
-                        ]}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-center">
-                    <StatusCard
-                      title={"تم إتمام الطلب"}
-                      items={[
-                        { label: "رقم الطلب", value: requestID },
-                        {
-                          label: "حالة الطلب",
-                          value: "تم إتمام الطلب",
-                          valueColor: "#54B5A6",
-                        },
-                        {
-                          label: "نوع الخدمة",
-                          value: initialRequest.serviceName,
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
+                <div className="flex justify-center">
+                  <StatusCard
+                    title={"تم إتمام الطلب"}
+                    items={[
+                      { label: "رقم الطلب", value: requestID },
+                      {
+                        label: "حالة الطلب",
+                        value: "تم إتمام الطلب",
+                        valueColor: "#54B5A6",
+                      },
+                      {
+                        label: "نوع الخدمة",
+                        value: initialRequest.serviceName,
+                      },
+                    ]}
+                  />
+                </div>
               </>
             )}
 

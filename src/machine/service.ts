@@ -52,7 +52,7 @@ const stateMachine = setup({
       | { type: "APPROVE" }
       | { type: "REJECT" }
       | { type: "READY_TO_SHIP" }
-      | { type: "SUBMIT_SHIPPING"; shippingInfo: Record<string, any> }
+      | { type: "SUBMIT_SHIPPING"; formData?: any }
       | {
           type: "SUBMIT_PAYMENT_INFO";
           feeItems: Array<{ label: string; price: number }>;
@@ -116,10 +116,12 @@ const stateMachine = setup({
     }),
 
     Progress_shippmentAddress: assign({
-      Progress: ({ context }) => {
+      Progress: ({ context, event }) => {
         return updateProgress(context, "shipping", {
           eventName: "تم تقديم عنوان الشحن",
-          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
+          extra:
+            event.type === "SUBMIT_SHIPPING" &&
+            event.formData?.shipping?.address,
         });
       },
     }),
@@ -147,7 +149,7 @@ const stateMachine = setup({
 
     saveShippingInfo: assign({
       shippingInfo: ({ event }) =>
-        event.type === "SUBMIT_SHIPPING" ? event.shippingInfo : {},
+        event.type === "SUBMIT_SHIPPING" ? event.formData : {},
     }),
 
     savePaymentInfo: assign({
@@ -256,7 +258,7 @@ const stateMachine = setup({
 
         rejected: {
           always: {
-            target: "#governmentService.completed",
+            target: "#governmentService.rejected",
             actions: [
               "rejectRequest",
               "Progress_underReview",
@@ -316,6 +318,13 @@ const stateMachine = setup({
     /* COMPLETED */
     /* ===================================== */
     completed: {
+      type: "final",
+    },
+
+    /* ===================================== */
+    /* rejected */
+    /* ===================================== */
+    rejected: {
       type: "final",
     },
   },
