@@ -129,8 +129,8 @@ const stateMachine = setup({
     Progress_shippmentDelivered: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "shipping", {
-          eventName: "تم تسليم الشحنة",
-          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
+          eventName: "تم تأكيد استلام الشحنة من قبل البريد",
+          extra: "",
         });
       },
     }),
