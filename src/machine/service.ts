@@ -161,6 +161,12 @@ const stateMachine = setup({
 
     markDelivered: assign({
       deliveryConfirmed: () => true,
+      Progress: ({ context }) => {
+        return updateProgress(context, "completion", {
+          eventName: "تم تسليم الشحنة",
+          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
+        });
+      },
     }),
   },
 }).createMachine({
