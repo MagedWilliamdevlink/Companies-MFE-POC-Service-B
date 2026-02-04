@@ -230,7 +230,7 @@ export default function ServiceComponent() {
 
           {/* ------ Content Body ------ */}
           <div style={styles.contentBody}>
-            {!state.matches("completed") && (
+            {!state.matches("completed") && !state.matches("rejected") && (
               <div
                 style={{
                   color: "#2A71F0",
