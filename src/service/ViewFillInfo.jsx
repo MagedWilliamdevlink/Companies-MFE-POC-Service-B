@@ -30,7 +30,7 @@ export default function ViewFillInfo({ sendEvent, request }) {
         <CTA handleSubmit={handlePrev} arrow={"right"} variant={"outline"}>
           سابق
         </CTA>
-        <CTA handleSubmit={handleSubmit}>التالي</CTA>
+        <CTA handleSubmit={handleSubmit}>إرسال</CTA>
       </div>
     </>
   );

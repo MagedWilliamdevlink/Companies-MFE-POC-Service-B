@@ -26,13 +26,15 @@ export default function ShippingAddress({ sendEvent }) {
       <Form form={form} layout="vertical">
         <Form.Item
           name={["shipping", "address"]}
-          label={"shipping Address"}
+          label={"عنوان الشحن"}
           rules={[
             {
               required: true,
+              message: "عنوان الشحن مطلوب",
             },
             {
               min: 10,
+              message: "يجب أن يتكون من 10 أحرف على الأقل",
             },
           ]}
         >
