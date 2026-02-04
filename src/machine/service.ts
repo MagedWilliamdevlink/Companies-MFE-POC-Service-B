@@ -126,6 +126,16 @@ const stateMachine = setup({
       },
     }),
 
+    markDelivered: assign({
+      deliveryConfirmed: () => true,
+      Progress: ({ context }) => {
+        return updateProgress(context, "completion", {
+          eventName: "تم تسليم الشحنة",
+          extra: "",
+        });
+      },
+    }),
+
     Progress_shippmentDelivered: assign({
       Progress: ({ context }) => {
         return updateProgress(context, "shipping", {
@@ -157,16 +167,6 @@ const stateMachine = setup({
         event.type === "SUBMIT_PAYMENT_INFO"
           ? { feeItems: event.feeItems }
           : {},
-    }),
-
-    markDelivered: assign({
-      deliveryConfirmed: () => true,
-      Progress: ({ context }) => {
-        return updateProgress(context, "completion", {
-          eventName: "تم تسليم الشحنة",
-          extra: "عنوان الشحن، القاهرة، مصر، الطابق الثالث",
-        });
-      },
     }),
   },
 }).createMachine({
